@@ -4,6 +4,9 @@
 Usage:
     python3 quips/scrape_patreon_quips.py
     python3 quips/scrape_patreon_quips.py --output quips/Patreon_Quips_2026.md
+
+Creator-specific identifiers and profile details are loaded from the adjacent
+patreon_config.json file.
 """
 
 from __future__ import annotations
@@ -15,63 +18,93 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 
-CAMPAIGN_ID = "12110557"
-API_ROOT = "https://www.patreon.com/api/quick_posts_feed/v1"
-PROFILE_URL = "https://www.patreon.com/cw/DanPikora/quips"
+API_PATH = "/api/quick_posts_feed/v1"
 PAGE_SIZE = 10
-USER_AGENT = "Mozilla/5.0 (compatible; PatreonQuipArchive/1.0)"
-ARCHIVE_HEADER = (
-    "# Patreon Quips\n\n"
-    "Public quips from [Dan Pikora's Patreon Quips page]"
-    f"({PROFILE_URL}), collected "
-)
+CONFIG_PATH = Path(__file__).with_name("patreon_config.json")
 ARCHIVE_FOOTER = (
     ". Entries are listed newest first; Patreon displayed the newest entry "
     "as “Yesterday” when collected.\n\n"
 )
 
-INITIAL_PARAMS = {
-    "filter[campaign_id]": CAMPAIGN_ID,
-    "fields[launcher-feed-section]": "footer",
-    "fields[launcher-feed-item]": "",
-    "fields[feed-card-quick-post]": "",
-    "fields[post]": "content_json_string,published_at,url,post_type,title",
-    "include": "items,items.card_quick_post,items.card_quick_post.post",
-    "json-api-version": "1.0",
-    "json-api-use-default-includes": "false",
-    "json-api-use-default-fields": "false",
-}
-
-PAGE_PARAMS = {
-    "filter[campaign_id]": CAMPAIGN_ID,
-    "fields[launcher-feed-item]": "",
-    "fields[feed-card-quick-post]": "",
-    "fields[post]": "content_json_string,published_at,url,post_type,title",
-    "include": "card_quick_post,card_quick_post.post",
-    "page[size]": str(PAGE_SIZE),
-    "json-api-version": "1.0",
-    "json-api-use-default-includes": "false",
-    "json-api-use-default-fields": "false",
-}
-
-SAVED_ID_RE = re.compile(
-    r"(?m)^\[Patreon quip\]\(https://www\.patreon\.com/[^/]+/posts/"
-    r"(?:[^/\s)]*-)?(\d+)(?=[/?#)])"
-)
+SAVED_LINK_RE = re.compile(r"(?m)^\[Patreon quip\]\((https?://[^)\s]+)\)")
 
 
-def fetch_json(path: str, params: dict[str, str]) -> dict:
-    url = f"{API_ROOT}{path}?{urlencode(params)}"
+def load_config() -> dict[str, str]:
+    try:
+        config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise RuntimeError(f"Could not read creator config {CONFIG_PATH}: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Creator config {CONFIG_PATH} is not valid JSON.") from exc
+
+    if not isinstance(config, dict):
+        raise RuntimeError(f"Creator config {CONFIG_PATH} must contain a JSON object.")
+    required = (
+        "campaign_id",
+        "creator_name",
+        "creator_slug",
+        "platform_url",
+        "profile_url",
+        "user_agent",
+    )
+    missing = [
+        key
+        for key in required
+        if not isinstance(config.get(key), str) or not config[key].strip()
+    ]
+    if missing:
+        raise RuntimeError(
+            f"Creator config {CONFIG_PATH} must define non-empty string values for: "
+            + ", ".join(missing)
+        )
+    return config
+
+
+def initial_feed_params(config: dict[str, str]) -> dict[str, str]:
+    return {
+        "filter[campaign_id]": config["campaign_id"],
+        "fields[launcher-feed-section]": "footer",
+        "fields[launcher-feed-item]": "",
+        "fields[feed-card-quick-post]": "",
+        "fields[post]": "content_json_string,published_at,url,post_type,title",
+        "include": "items,items.card_quick_post,items.card_quick_post.post",
+        "json-api-version": "1.0",
+        "json-api-use-default-includes": "false",
+        "json-api-use-default-fields": "false",
+    }
+
+
+def page_feed_params(config: dict[str, str]) -> dict[str, str]:
+    return {
+        "filter[campaign_id]": config["campaign_id"],
+        "fields[launcher-feed-item]": "",
+        "fields[feed-card-quick-post]": "",
+        "fields[post]": "content_json_string,published_at,url,post_type,title",
+        "include": "card_quick_post,card_quick_post.post",
+        "page[size]": str(PAGE_SIZE),
+        "json-api-version": "1.0",
+        "json-api-use-default-includes": "false",
+        "json-api-use-default-fields": "false",
+    }
+
+
+def fetch_json(
+    path: str, params: dict[str, str], config: dict[str, str]
+) -> dict:
+    url = (
+        f"{config['platform_url'].rstrip('/')}{API_PATH}{path}"
+        f"?{urlencode(params)}"
+    )
     request = Request(
         url,
         headers={
             "Accept": "application/vnd.api+json",
-            "Referer": PROFILE_URL,
-            "User-Agent": USER_AGENT,
+            "Referer": config["profile_url"],
+            "User-Agent": config["user_agent"],
         },
     )
     try:
@@ -133,8 +166,18 @@ def next_cursor(payload: dict) -> str | None:
     )
 
 
-def saved_post_ids(markdown: str) -> set[str]:
-    return {match.group(1) for match in SAVED_ID_RE.finditer(markdown)}
+def saved_post_ids(markdown: str, config: dict[str, str]) -> set[str]:
+    platform_host = urlparse(config["platform_url"]).netloc
+    post_path_re = re.compile(r"/posts/(?:[^/\s)]*-)?(\d+)(?:[/?#]|$)")
+    ids = set()
+    for link in SAVED_LINK_RE.finditer(markdown):
+        url = urlparse(link.group(1))
+        if url.netloc != platform_host:
+            continue
+        post_path = post_path_re.search(url.path)
+        if post_path:
+            ids.add(post_path.group(1))
+    return ids
 
 
 def render_inline(node: dict) -> str:
@@ -206,7 +249,7 @@ def render_post_body(post: dict) -> str:
     return "\n\n".join(blocks)
 
 
-def format_post(post: dict) -> str:
+def format_post(post: dict, config: dict[str, str]) -> str:
     attributes = post.get("attributes", {})
     published_at = attributes.get("published_at")
     if published_at:
@@ -223,7 +266,7 @@ def format_post(post: dict) -> str:
 
     post_id = str(post.get("id", ""))
     url = attributes.get("url") or (
-        f"https://www.patreon.com/DanPikora/posts/{post_id}"
+        f"{config['platform_url'].rstrip('/')}/{config['creator_slug']}/posts/{post_id}"
     )
     body = render_post_body(post)
     return f"## {date}\n\n[Patreon quip]({url})\n\n{body}"
@@ -256,16 +299,16 @@ def insert_entries(markdown: str, entries: str) -> str:
     return markdown.rstrip() + "\n\n" + entries + "\n"
 
 
-def scrape(output_path: Path) -> int:
+def scrape(output_path: Path, config: dict[str, str]) -> int:
     if output_path.exists() and not output_path.is_file():
         raise RuntimeError(f"Archive path is not a file: {output_path}")
     if output_path.is_file():
         markdown = output_path.read_text(encoding="utf-8")
     else:
         markdown = ""
-    known_ids = saved_post_ids(markdown)
+    known_ids = saved_post_ids(markdown, config)
 
-    payload = fetch_json("", INITIAL_PARAMS)
+    payload = fetch_json("", initial_feed_params(config), config)
     sections = payload.get("data", [])
     if not sections:
         raise RuntimeError("Patreon returned no Quips feed section.")
@@ -279,9 +322,9 @@ def scrape(output_path: Path) -> int:
         .get("cursor")
     )
     while cursor and not stop_id:
-        params = dict(PAGE_PARAMS)
+        params = page_feed_params(config)
         params["page[cursor]"] = cursor
-        page = fetch_json("/section_feed", params)
+        page = fetch_json("/section_feed", params, config)
         page_posts = get_feed_posts(page)
         if not page_posts:
             break
@@ -299,7 +342,7 @@ def scrape(output_path: Path) -> int:
         if not markdown:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(
-                ARCHIVE_HEADER
+                archive_header(config)
                 + datetime.now().strftime("%B %d, %Y").replace(" 0", " ")
                 + ARCHIVE_FOOTER,
                 encoding="utf-8",
@@ -309,11 +352,11 @@ def scrape(output_path: Path) -> int:
             print("No new quips found; the newest feed entry is already in the archive.")
         return 0
 
-    entries = "\n\n".join(format_post(post) for post in new_posts)
+    entries = "\n\n".join(format_post(post, config) for post in new_posts)
     collected_date = datetime.now().strftime("%B %d, %Y").replace(" 0", " ")
     if not markdown:
         updated = (
-            ARCHIVE_HEADER + collected_date + ARCHIVE_FOOTER + entries + "\n"
+            archive_header(config) + collected_date + ARCHIVE_FOOTER + entries + "\n"
         )
     else:
         updated = re.sub(
@@ -334,6 +377,14 @@ def scrape(output_path: Path) -> int:
     return len(new_posts)
 
 
+def archive_header(config: dict[str, str]) -> str:
+    return (
+        "# Patreon Quips\n\n"
+        f"Public quips from [{config['creator_name']}'s Patreon Quips page]"
+        f"({config['profile_url']}), collected "
+    )
+
+
 def main() -> int:
     default_output = Path(__file__).with_name("Patreon_Quips_2026.md")
     parser = argparse.ArgumentParser(description=__doc__)
@@ -345,7 +396,8 @@ def main() -> int:
     )
     args = parser.parse_args()
     try:
-        scrape(args.output)
+        config = load_config()
+        scrape(args.output, config)
         return 0
     except (OSError, RuntimeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
