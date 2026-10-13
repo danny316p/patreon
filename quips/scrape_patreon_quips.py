@@ -24,6 +24,15 @@ API_ROOT = "https://www.patreon.com/api/quick_posts_feed/v1"
 PROFILE_URL = "https://www.patreon.com/cw/DanPikora/quips"
 PAGE_SIZE = 10
 USER_AGENT = "Mozilla/5.0 (compatible; PatreonQuipArchive/1.0)"
+ARCHIVE_HEADER = (
+    "# Patreon Quips\n\n"
+    "Public quips from [Dan Pikora's Patreon Quips page]"
+    f"({PROFILE_URL}), collected "
+)
+ARCHIVE_FOOTER = (
+    ". Entries are listed newest first; Patreon displayed the newest entry "
+    "as “Yesterday” when collected.\n\n"
+)
 
 INITIAL_PARAMS = {
     "filter[campaign_id]": CAMPAIGN_ID,
@@ -248,15 +257,13 @@ def insert_entries(markdown: str, entries: str) -> str:
 
 
 def scrape(output_path: Path) -> int:
-    if not output_path.is_file():
-        raise RuntimeError(f"Archive file not found: {output_path}")
-    markdown = output_path.read_text(encoding="utf-8")
+    if output_path.exists() and not output_path.is_file():
+        raise RuntimeError(f"Archive path is not a file: {output_path}")
+    if output_path.is_file():
+        markdown = output_path.read_text(encoding="utf-8")
+    else:
+        markdown = ""
     known_ids = saved_post_ids(markdown)
-    if not known_ids:
-        raise RuntimeError(
-            f"No saved Patreon quip links found in {output_path}; "
-            "refusing to append blindly."
-        )
 
     payload = fetch_json("", INITIAL_PARAMS)
     sections = payload.get("data", [])
@@ -289,19 +296,36 @@ def scrape(output_path: Path) -> int:
         cursor = new_cursor
 
     if not new_posts:
-        print("No new quips found; the newest feed entry is already in the archive.")
+        if not markdown:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(
+                ARCHIVE_HEADER
+                + datetime.now().strftime("%B %d, %Y").replace(" 0", " ")
+                + ARCHIVE_FOOTER,
+                encoding="utf-8",
+            )
+            print(f"Created empty quip archive at {output_path}; no quips were found.")
+        else:
+            print("No new quips found; the newest feed entry is already in the archive.")
         return 0
 
     entries = "\n\n".join(format_post(post) for post in new_posts)
     collected_date = datetime.now().strftime("%B %d, %Y").replace(" 0", " ")
-    updated = re.sub(
-        r"^(Public quips from .+?, collected )[^.]+(\. Entries are listed newest first;.*)$",
-        lambda match: match.group(1) + collected_date + match.group(2),
-        markdown,
-        count=1,
-        flags=re.MULTILINE,
-    )
-    output_path.write_text(insert_entries(updated, entries), encoding="utf-8")
+    if not markdown:
+        updated = (
+            ARCHIVE_HEADER + collected_date + ARCHIVE_FOOTER + entries + "\n"
+        )
+    else:
+        updated = re.sub(
+            r"^(Public quips from .+?, collected )[^.]+(\. Entries are listed newest first;.*)$",
+            lambda match: match.group(1) + collected_date + match.group(2),
+            markdown,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        updated = insert_entries(updated, entries)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(updated, encoding="utf-8")
     print(f"Saved {len(new_posts)} new quip(s) to {output_path}.")
     if stop_id:
         print(f"Stopped at previously saved quip {stop_id}.")
