@@ -1,0 +1,8 @@
+{
+  "campaign_id": "YOUR_CAMPAIGN_ID",
+  "creator_name": "Your Creator Name",
+  "creator_slug": "YourCreatorSlug",
+  "platform_url": "https://www.patreon.com",
+  "profile_url": "https://www.patreon.com/cw/YourCreatorSlug/quips",
+  "user_agent": "Mozilla/5.0 (compatible; PatreonQuipArchive/1.0)"
+}
