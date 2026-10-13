@@ -6,7 +6,8 @@ Usage:
     python3 quips/scrape_patreon_quips.py --output quips/Patreon_Quips_2026.md
 
 Creator-specific identifiers and profile details are loaded from the adjacent
-patreon_config.json file.
+patreon_config.json file. Start by copying quips/patreon_config.example.json to
+quips/patreon_config.json, then replace the example creator details.
 """
 
 from __future__ import annotations
