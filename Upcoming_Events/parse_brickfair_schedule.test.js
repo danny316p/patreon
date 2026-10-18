@@ -65,7 +65,13 @@ const fixture = `
   <p class="pWeekday">Saturday</p>
   <div class="divWeekday" id="Day_7" data-date="11/7/2026"></div>
   <p class="pWeekday">Sunday</p>
-  <div class="divWeekday" id="Day_1" data-date="11/8/2026"></div>
+  <div class="divWeekday" id="Day_1" data-date="11/8/2026">
+    <div class="Gamvent" id="Game_4">
+      <p><span class="gmName">Brickee</span><small>Votes Due</small></p>
+      <input type="hidden" class="Hour" value="10" />
+      <input type="hidden" class="Minute" value="0" />
+    </div>
+  </div>
 `;
 
 test("groups events and puts public and exhibitor hour markers in each day's timeline", () => {
@@ -95,7 +101,8 @@ test("groups events and puts public and exhibitor hour markers in each day's tim
       "",
       "Sunday, November 8, 2026",
       "8:30 AM: Hall opens",
-      "10:00 AM: Public hours start",
+      "10:00 AM: Brickee Votes Due",
+      "\tAND Public hours start",
       "4:00 PM: Public hours end and teardown starts",
       "12:00 AM: Hall closes",
     ].join("\n"),
