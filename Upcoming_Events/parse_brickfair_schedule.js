@@ -183,18 +183,36 @@ function findEvents(dayHtml, weekday) {
   return events;
 }
 
-function formatScheduleHours(value) {
-  return value
-    .replace(/\bnoon\b/gi, "12:00 PM")
-    .replace(/\bmidnight\b/gi, "12:00 AM")
-    .replace(/(am|pm)\b/gi, (period) => period.toUpperCase())
-    .replace(/(\d)(AM|PM)\b/g, "$1 $2")
-    .replace(/\s*-\s*/g, " - ")
-    .trim();
+function parseOperatingTime(value, heading, day) {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "noon") return { hour: 12, minute: 0 };
+  if (normalized === "midnight") return { hour: 0, minute: 0 };
+
+  const match = normalized.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+  if (!match) {
+    throw new Error(`Could not parse the ${heading} time "${value}" for ${day}.`);
+  }
+  const [, hourText, minuteText = "0", period] = match;
+  let hour = Number(hourText);
+  const minute = Number(minuteText);
+  if (
+    hour < 1 ||
+    hour > 12 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    throw new Error(`Found an invalid ${heading} time "${value}" for ${day}.`);
+  }
+  if (period === "am") {
+    hour %= 12;
+  } else if (hour !== 12) {
+    hour += 12;
+  }
+  return { hour, minute };
 }
 
-function findOperatingHours(html) {
-  const sections = [];
+function findOperatingEvents(html) {
+  const eventsByDay = new Map();
   const paragraphs = /<p\b([^>]*)>([\s\S]*?)<\/p>/gi;
   let paragraph;
   while ((paragraph = paragraphs.exec(html)) !== null) {
@@ -202,7 +220,6 @@ function findOperatingHours(html) {
     const heading = getFirstTagText(paragraph[2], "strong");
     if (heading !== "Public Hours" && heading !== "Exhibitor Hours") continue;
 
-    const hours = [];
     const labels = /<small\b([^>]*)>([\s\S]*?)<\/small>/gi;
     let label;
     while ((label = labels.exec(paragraph[2])) !== null) {
@@ -215,14 +232,31 @@ function findOperatingHours(html) {
       const rawRange = paragraph[2]
         .slice(labels.lastIndex, nextTag < 0 ? undefined : nextTag)
         .trim();
-      if (!rawRange) {
+      const range = rawRange.match(/^(.+?)\s*-\s*(.+)$/);
+      if (!range) {
         throw new Error(`The ${heading} entry for ${day} has no time range.`);
       }
-      hours.push(`${day}: ${formatScheduleHours(textContent(rawRange))}`);
+      const start = parseOperatingTime(textContent(range[1]), heading, day);
+      const end = parseOperatingTime(textContent(range[2]), heading, day);
+      const events = eventsByDay.get(day.toLowerCase()) ?? [];
+      events.push({
+        ...start,
+        title: heading === "Public Hours" ? "Public hours start" : "Hall opens",
+      });
+      const endMinute = end.hour * 60 + end.minute;
+      const startMinute = start.hour * 60 + start.minute;
+      events.push({
+        ...end,
+        sortMinute: endMinute <= startMinute ? endMinute + 1440 : endMinute,
+        title:
+          heading === "Public Hours"
+            ? "Public hours end and teardown starts"
+            : "Hall closes",
+      });
+      eventsByDay.set(day.toLowerCase(), events);
     }
-    if (hours.length > 0) sections.push(`${heading}\n${hours.join("\n")}`);
   }
-  return sections;
+  return eventsByDay;
 }
 
 function formatDate(date) {
@@ -261,12 +295,16 @@ function parseSchedule(html) {
   const days = findDays(html);
   if (days.length === 0) throw new Error("No schedule days were found in the page.");
 
+  const operatingEvents = findOperatingEvents(html);
   const daySchedules = days
     .map(({ weekday, date, html: dayHtml }) => {
-      const events = findEvents(dayHtml, weekday);
+      const events = [
+        ...findEvents(dayHtml, weekday),
+        ...(operatingEvents.get(weekday.toLowerCase()) ?? []),
+      ];
       const byTime = new Map();
       for (const event of events) {
-        const key = event.hour * 60 + event.minute;
+        const key = event.sortMinute ?? event.hour * 60 + event.minute;
         if (!byTime.has(key)) byTime.set(key, []);
         byTime.get(key).push(event);
       }
@@ -274,14 +312,16 @@ function parseSchedule(html) {
       const lines = [...byTime.entries()]
         .sort(([left], [right]) => left - right)
         .map(([minutes, simultaneous]) => {
-          const time = formatTime(Math.floor(minutes / 60), minutes % 60);
+          const time = formatTime(
+            Math.floor((minutes % 1440) / 60),
+            minutes % 60,
+          );
           return `${time}: ${simultaneous.map(formatEvent).join("\nAND ")}`;
         });
       return [`${weekday}, ${formatDate(date)}`, ...lines].join("\n");
     })
     .join("\n\n");
-  const operatingHours = findOperatingHours(html);
-  return [...operatingHours, daySchedules].join("\n\n");
+  return daySchedules;
 }
 
 function getDefaultOutputPath(html, retrievedAt = new Date()) {

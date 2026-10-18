@@ -18,7 +18,7 @@ const fixture = `
     <td>
       <p class="dbInfo">
         <strong>Public Hours</strong>
-        <br /><small>Saturday</small> 10:00am - 5:00pm</samp>
+        <br /><small>Saturday</small> 10:00am - 4:00pm</samp>
         <br /><small>Sunday</small> 10:00am - 4:00pm</samp>
       </p>
     </td>
@@ -59,29 +59,45 @@ const fixture = `
       <input type="hidden" class="Minute" value="30" />
     </div>
   </div>
+  <p class="pWeekday">Friday</p>
+  <div class="divWeekday" id="Day_6" data-date="11/6/2026"></div>
+  <p class="pWeekday">Saturday</p>
+  <div class="divWeekday" id="Day_7" data-date="11/7/2026"></div>
+  <p class="pWeekday">Sunday</p>
+  <div class="divWeekday" id="Day_1" data-date="11/8/2026"></div>
 `;
 
-test("groups simultaneous events and includes schedule details", () => {
+test("groups events and puts public and exhibitor hour markers in each day's timeline", () => {
+  const output = parseSchedule(fixture);
   assert.equal(
-    parseSchedule(fixture),
+    output,
     [
-      "Public Hours",
-      "Saturday: 10:00 AM - 5:00 PM",
-      "Sunday: 10:00 AM - 4:00 PM",
-      "",
-      "Exhibitor Hours",
-      "Thursday: 12:00 PM - 11:00 PM",
-      "Friday: 8:30 AM - 11:00 PM",
-      "Saturday: 8:30 AM - 11:00 PM",
-      "Sunday: 8:30 AM - 12:00 AM",
-      "",
       "Thursday, November 5, 2026",
       "12:00 PM: Sunday Brunch",
+      "AND Hall opens",
       "5:30 PM: Build & Share — Food Court",
       "AND Brick History — Bingo (presenter: Alex Builder)",
       "AND Mosaic Reset",
+      "11:00 PM: Hall closes",
+      "",
+      "Friday, November 6, 2026",
+      "8:30 AM: Hall opens",
+      "11:00 PM: Hall closes",
+      "",
+      "Saturday, November 7, 2026",
+      "8:30 AM: Hall opens",
+      "10:00 AM: Public hours start",
+      "4:00 PM: Public hours end and teardown starts",
+      "11:00 PM: Hall closes",
+      "",
+      "Sunday, November 8, 2026",
+      "8:30 AM: Hall opens",
+      "10:00 AM: Public hours start",
+      "4:00 PM: Public hours end and teardown starts",
+      "12:00 AM: Hall closes",
     ].join("\n"),
   );
+  assert.doesNotMatch(output, /^Public Hours$|^Exhibitor Hours$/m);
 });
 
 test("fails clearly when the page contains no schedule", () => {
