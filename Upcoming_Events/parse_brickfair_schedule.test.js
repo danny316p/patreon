@@ -14,6 +14,7 @@ const {
 
 const fixture = `
   <title>BrickFair LEGO Expo</title>
+  <div id="hed2">Oaks</div>
   <table><tr>
     <td>
       <p class="dbInfo">
@@ -111,7 +112,7 @@ test("builds the default output filename from event, year, and retrieval date", 
     path.basename(
       getDefaultOutputPath(fixture, new Date(2026, 9, 17, 12)),
     ),
-    "BrickFair_LEGO_Expo_2026_2026-10-17.txt",
+    "BrickFair_Oaks_2026_2026-10-17.txt",
   );
 });
 
