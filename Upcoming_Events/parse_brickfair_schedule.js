@@ -211,6 +211,29 @@ function parseOperatingTime(value, heading, day) {
   return { hour, minute };
 }
 
+function getDayName(value) {
+  const days = {
+    mon: "monday",
+    monday: "monday",
+    tue: "tuesday",
+    tues: "tuesday",
+    tuesday: "tuesday",
+    wed: "wednesday",
+    wednesday: "wednesday",
+    thu: "thursday",
+    thur: "thursday",
+    thurs: "thursday",
+    thursday: "thursday",
+    fri: "friday",
+    friday: "friday",
+    sat: "saturday",
+    saturday: "saturday",
+    sun: "sunday",
+    sunday: "sunday",
+  };
+  return days[value.toLowerCase()] ?? null;
+}
+
 function findOperatingEvents(html) {
   const eventsByDay = new Map();
   const paragraphs = /<p\b([^>]*)>([\s\S]*?)<\/p>/gi;
@@ -223,7 +246,35 @@ function findOperatingEvents(html) {
     const labels = /<small\b([^>]*)>([\s\S]*?)<\/small>/gi;
     let label;
     while ((label = labels.exec(paragraph[2])) !== null) {
-      if (hasClass(label[1], "tAlert")) continue;
+      if (hasClass(label[1], "tAlert")) {
+        const alert = textContent(label[2]).match(
+          /^(.+?),\s*(Mon(?:day)?|Tue(?:s(?:day)?)?|Wed(?:nesday)?|Thu(?:r?s?(?:day)?)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)\s+(.+?)\s*-\s*(.+)$/i,
+        );
+        if (!alert) continue;
+        const [, description, dayLabel, startValue, endValue] = alert;
+        const day = getDayName(dayLabel);
+        if (!day) continue;
+        const eventDescription = description.replace(
+          /(\d+)\s*\+\s*years?-old/gi,
+          "$1+ years old",
+        );
+        const start = parseOperatingTime(startValue, description, day);
+        const end = parseOperatingTime(endValue, description, day);
+        const startMinute = start.hour * 60 + start.minute;
+        const endMinute = end.hour * 60 + end.minute;
+        const events = eventsByDay.get(day) ?? [];
+        events.push({
+          ...start,
+          title: `${eventDescription} starts`,
+        });
+        events.push({
+          ...end,
+          sortMinute: endMinute <= startMinute ? endMinute + 1440 : endMinute,
+          title: `${eventDescription} ends`,
+        });
+        eventsByDay.set(day, events);
+        continue;
+      }
       const day = textContent(label[2]);
       if (!/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/i.test(day)) {
         continue;
