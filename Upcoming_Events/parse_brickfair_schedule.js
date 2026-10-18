@@ -337,7 +337,7 @@ function formatTime(hour, minute) {
 }
 
 function formatEvent(event) {
-  let details = event.location ? ` — ${event.location}` : "";
+  let details = event.location ? ` - ${event.location}` : "";
   if (event.presenter) details += ` (presenter: ${event.presenter})`;
   return `${event.title}${details}`;
 }
@@ -367,7 +367,7 @@ function parseSchedule(html) {
             Math.floor((minutes % 1440) / 60),
             minutes % 60,
           );
-          return `${time}: ${simultaneous.map(formatEvent).join("\nAND ")}`;
+          return `${time}: ${simultaneous.map(formatEvent).join("\n\tAND ")}`;
         });
       return [`${weekday}, ${formatDate(date)}`, ...lines].join("\n");
     })
