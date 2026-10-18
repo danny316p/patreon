@@ -183,6 +183,48 @@ function findEvents(dayHtml, weekday) {
   return events;
 }
 
+function formatScheduleHours(value) {
+  return value
+    .replace(/\bnoon\b/gi, "12:00 PM")
+    .replace(/\bmidnight\b/gi, "12:00 AM")
+    .replace(/(am|pm)\b/gi, (period) => period.toUpperCase())
+    .replace(/(\d)(AM|PM)\b/g, "$1 $2")
+    .replace(/\s*-\s*/g, " - ")
+    .trim();
+}
+
+function findOperatingHours(html) {
+  const sections = [];
+  const paragraphs = /<p\b([^>]*)>([\s\S]*?)<\/p>/gi;
+  let paragraph;
+  while ((paragraph = paragraphs.exec(html)) !== null) {
+    if (!hasClass(paragraph[1], "dbInfo")) continue;
+    const heading = getFirstTagText(paragraph[2], "strong");
+    if (heading !== "Public Hours" && heading !== "Exhibitor Hours") continue;
+
+    const hours = [];
+    const labels = /<small\b([^>]*)>([\s\S]*?)<\/small>/gi;
+    let label;
+    while ((label = labels.exec(paragraph[2])) !== null) {
+      if (hasClass(label[1], "tAlert")) continue;
+      const day = textContent(label[2]);
+      if (!/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/i.test(day)) {
+        continue;
+      }
+      const nextTag = paragraph[2].indexOf("<", labels.lastIndex);
+      const rawRange = paragraph[2]
+        .slice(labels.lastIndex, nextTag < 0 ? undefined : nextTag)
+        .trim();
+      if (!rawRange) {
+        throw new Error(`The ${heading} entry for ${day} has no time range.`);
+      }
+      hours.push(`${day}: ${formatScheduleHours(textContent(rawRange))}`);
+    }
+    if (hours.length > 0) sections.push(`${heading}\n${hours.join("\n")}`);
+  }
+  return sections;
+}
+
 function formatDate(date) {
   const match = date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!match) return date;
@@ -219,7 +261,7 @@ function parseSchedule(html) {
   const days = findDays(html);
   if (days.length === 0) throw new Error("No schedule days were found in the page.");
 
-  return days
+  const daySchedules = days
     .map(({ weekday, date, html: dayHtml }) => {
       const events = findEvents(dayHtml, weekday);
       const byTime = new Map();
@@ -238,6 +280,8 @@ function parseSchedule(html) {
       return [`${weekday}, ${formatDate(date)}`, ...lines].join("\n");
     })
     .join("\n\n");
+  const operatingHours = findOperatingHours(html);
+  return [...operatingHours, daySchedules].join("\n\n");
 }
 
 function getDefaultOutputPath(html, retrievedAt = new Date()) {

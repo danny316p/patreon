@@ -14,6 +14,25 @@ const {
 
 const fixture = `
   <title>BrickFair LEGO Expo</title>
+  <table><tr>
+    <td>
+      <p class="dbInfo">
+        <strong>Public Hours</strong>
+        <br /><small>Saturday</small> 10:00am - 5:00pm</samp>
+        <br /><small>Sunday</small> 10:00am - 4:00pm</samp>
+      </p>
+    </td>
+    <td>
+      <p class="dbInfo">
+        <strong>Exhibitor Hours</strong>
+        <br /><small>Thursday</small> Noon - 11:00pm</samp>
+        <br /><small>Friday</small> 8:30am - 11:00pm</samp>
+        <br /><small>Saturday</small> 8:30am - 11:00pm</samp>
+        <br /><small class="tAlert">Adult Swim 21+ only, SAT 9pm - 2am</small>
+        <br /><small>Sunday</small> 8:30am - Midnight</samp>
+      </p>
+    </td>
+  </tr></table>
   <p class="pWeekday">Thursday</p>
   <div class="divWeekday" id="Day_5" data-date="11/5/2026">
     <div class="Gamvent clikable" id="Game_1">
@@ -46,6 +65,16 @@ test("groups simultaneous events and includes schedule details", () => {
   assert.equal(
     parseSchedule(fixture),
     [
+      "Public Hours",
+      "Saturday: 10:00 AM - 5:00 PM",
+      "Sunday: 10:00 AM - 4:00 PM",
+      "",
+      "Exhibitor Hours",
+      "Thursday: 12:00 PM - 11:00 PM",
+      "Friday: 8:30 AM - 11:00 PM",
+      "Saturday: 8:30 AM - 11:00 PM",
+      "Sunday: 8:30 AM - 12:00 AM",
+      "",
       "Thursday, November 5, 2026",
       "12:00 PM: Sunday Brunch",
       "5:30 PM: Build & Share — Food Court",
