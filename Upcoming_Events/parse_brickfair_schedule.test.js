@@ -114,6 +114,11 @@ test("fails clearly when the page contains no schedule", () => {
   assert.throws(() => parseSchedule("<html><body>No schedule</body></html>"), /No schedule days/);
 });
 
+test("combines an inline event subtitle with its title without a title-specific rule", () => {
+  const html = fixture.replace("Brickee", "Ballot").replace("Votes Due", "Closes");
+  assert.match(parseSchedule(html), /10:00 AM: Ballot Closes/);
+});
+
 test("builds the default output filename from event, year, and retrieval date", () => {
   assert.equal(
     path.basename(
