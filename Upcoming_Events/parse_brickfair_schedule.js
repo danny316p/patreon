@@ -103,6 +103,23 @@ function getFirstTagText(html, tagName) {
   return match ? textContent(match[1]) : "";
 }
 
+function getElementTextById(html, id) {
+  const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const openingTag = new RegExp(
+    `<([a-z][\\w:-]*)\\b(?=[^>]*\\bid\\s*=\\s*(?:"${escapedId}"|'${escapedId}'))[^>]*>`,
+    "i",
+  );
+  const match = openingTag.exec(html);
+  if (!match) return "";
+  const contentStart = match.index + match[0].length;
+  const closingTag = new RegExp(`</${match[1]}\\s*>`, "ig");
+  closingTag.lastIndex = contentStart;
+  const closing = closingTag.exec(html);
+  return closing
+    ? textContent(html.slice(contentStart, closing.index))
+    : "";
+}
+
 function getInputValue(html, className) {
   const inputs = /<input\b[^>]*>/gi;
   let match;
@@ -377,8 +394,8 @@ function parseSchedule(html) {
 
 function getDefaultOutputPath(html, retrievedAt = new Date()) {
   const title = getFirstTagText(html, "title") || "BrickFair Schedule";
-  const eventName =
-    title
+  const venue = getElementTextById(html, "hed2") || getElementTextById(html, "dvEvtPlace");
+  const eventName = (venue ? `BrickFair ${venue}` : title)
       .normalize("NFKD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-zA-Z0-9]+/g, "_")
