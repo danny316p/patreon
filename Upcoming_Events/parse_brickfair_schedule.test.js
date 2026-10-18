@@ -28,7 +28,7 @@ const fixture = `
         <br /><small>Thursday</small> Noon - 11:00pm</samp>
         <br /><small>Friday</small> 8:30am - 11:00pm</samp>
         <br /><small>Saturday</small> 8:30am - 11:00pm</samp>
-        <br /><small class="tAlert">Adult Swim 21+ only, SAT 9pm - 2am</small>
+        <br /><small class="tAlert">Adult Swim 21+years-old only, SAT 9pm - 2am</small>
         <br /><small>Sunday</small> 8:30am - Midnight</samp>
       </p>
     </td>
@@ -88,7 +88,9 @@ test("groups events and puts public and exhibitor hour markers in each day's tim
       "8:30 AM: Hall opens",
       "10:00 AM: Public hours start",
       "4:00 PM: Public hours end and teardown starts",
+      "9:00 PM: Adult Swim 21+ years old only starts",
       "11:00 PM: Hall closes",
+      "2:00 AM: Adult Swim 21+ years old only ends",
       "",
       "Sunday, November 8, 2026",
       "8:30 AM: Hall opens",
