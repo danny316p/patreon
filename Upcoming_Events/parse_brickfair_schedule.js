@@ -222,7 +222,7 @@ function parseSchedule(html) {
         .sort(([left], [right]) => left - right)
         .map(([minutes, simultaneous]) => {
           const time = formatTime(Math.floor(minutes / 60), minutes % 60);
-          return `${time}: ${simultaneous.map(formatEvent).join(" AND ")}`;
+          return `${time}: ${simultaneous.map(formatEvent).join("\nAND ")}`;
         });
       return [`${weekday}, ${formatDate(date)}`, ...lines].join("\n");
     })

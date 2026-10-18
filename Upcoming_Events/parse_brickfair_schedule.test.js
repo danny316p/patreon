@@ -39,7 +39,9 @@ test("groups simultaneous events and includes schedule details", () => {
     [
       "Thursday, November 5, 2026",
       "12:00 PM: Sunday Brunch",
-      "5:30 PM: Build & Share — Food Court AND Brick History — Bingo (presenter: Alex Builder) AND Mosaic Reset",
+      "5:30 PM: Build & Share — Food Court",
+      "AND Brick History — Bingo (presenter: Alex Builder)",
+      "AND Mosaic Reset",
     ].join("\n"),
   );
 });
