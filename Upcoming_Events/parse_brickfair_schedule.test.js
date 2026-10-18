@@ -4,10 +4,16 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 const test = require("node:test");
-const { getScheduleHtml, parseSchedule } = require("./parse_brickfair_schedule.js");
+const {
+  getDefaultOutputPath,
+  getScheduleHtml,
+  parseSchedule,
+} = require("./parse_brickfair_schedule.js");
 
 const fixture = `
+  <title>BrickFair LEGO Expo</title>
   <p class="pWeekday">Thursday</p>
   <div class="divWeekday" id="Day_5" data-date="11/5/2026">
     <div class="Gamvent clikable" id="Game_1">
@@ -51,6 +57,44 @@ test("groups simultaneous events and includes schedule details", () => {
 
 test("fails clearly when the page contains no schedule", () => {
   assert.throws(() => parseSchedule("<html><body>No schedule</body></html>"), /No schedule days/);
+});
+
+test("builds the default output filename from event, year, and retrieval date", () => {
+  assert.equal(
+    path.basename(
+      getDefaultOutputPath(fixture, new Date(2026, 9, 17, 12)),
+    ),
+    "BrickFair_LEGO_Expo_2026_2026-10-17.txt",
+  );
+});
+
+test("defaults to a dated file and prints only with --stdout", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "brickfair-parser-cli-"));
+  const inputPath = path.join(directory, "schedule.html");
+  const html = fixture.replace("BrickFair LEGO Expo", "BrickFair Test CLI");
+  const defaultOutputPath = getDefaultOutputPath(html);
+  const scriptPath = path.join(__dirname, "parse_brickfair_schedule.js");
+  await fs.writeFile(inputPath, html, "utf8");
+
+  try {
+    const fileRun = spawnSync(process.execPath, [scriptPath, "--input", inputPath], {
+      encoding: "utf8",
+    });
+    assert.equal(fileRun.status, 0, fileRun.stderr);
+    assert.match(fileRun.stdout, /Saved schedule to /);
+    assert.equal(await fs.readFile(defaultOutputPath, "utf8"), `${parseSchedule(html)}\n`);
+
+    const stdoutRun = spawnSync(
+      process.execPath,
+      [scriptPath, "--input", inputPath, "--stdout"],
+      { encoding: "utf8" },
+    );
+    assert.equal(stdoutRun.status, 0, stdoutRun.stderr);
+    assert.equal(stdoutRun.stdout, `${parseSchedule(html)}\n`);
+  } finally {
+    await fs.rm(defaultOutputPath, { force: true });
+    await fs.rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("reuses cached HTML until refreshed or expired", async () => {

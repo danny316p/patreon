@@ -240,6 +240,30 @@ function parseSchedule(html) {
     .join("\n\n");
 }
 
+function getDefaultOutputPath(html, retrievedAt = new Date()) {
+  const title = getFirstTagText(html, "title") || "BrickFair Schedule";
+  const eventName =
+    title
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "BrickFair_Schedule";
+  const firstDay = findDays(html)[0];
+  const scheduleYear = firstDay?.date.match(/(?:^|\/)(\d{4})$/)?.[1];
+  if (!scheduleYear) {
+    throw new Error("Could not determine the schedule year for the output filename.");
+  }
+  const retrievalDate = [
+    retrievedAt.getFullYear(),
+    String(retrievedAt.getMonth() + 1).padStart(2, "0"),
+    String(retrievedAt.getDate()).padStart(2, "0"),
+  ].join("-");
+  return path.join(
+    __dirname,
+    `${eventName}_${scheduleYear}_${retrievalDate}.txt`,
+  );
+}
+
 async function fetchSchedule(url, fetcher = fetch) {
   let response;
   try {
@@ -322,7 +346,12 @@ async function getScheduleHtml(
 }
 
 function parseArguments(args) {
-  const options = { input: null, output: null, cacheFile: DEFAULT_CACHE_PATH };
+  const options = {
+    input: null,
+    output: null,
+    stdout: false,
+    cacheFile: DEFAULT_CACHE_PATH,
+  };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help" || argument === "-h") {
@@ -345,20 +374,26 @@ function parseArguments(args) {
       options.refresh = true;
     } else if (argument === "--no-cache") {
       options.noCache = true;
+    } else if (argument === "--stdout") {
+      options.stdout = true;
     } else {
       throw new Error(`Unknown argument: ${argument}`);
     }
+  }
+  if (options.stdout && options.output) {
+    throw new Error("--stdout cannot be used with --output.");
   }
   return options;
 }
 
 function usage() {
   return [
-    "Usage: node Upcoming_Events/parse_brickfair_schedule.js [--input FILE] [--output FILE] [--refresh] [--no-cache] [--cache-file FILE]",
+    "Usage: node Upcoming_Events/parse_brickfair_schedule.js [--input FILE] [--output FILE | --stdout] [--refresh] [--no-cache] [--cache-file FILE]",
     "",
-    `Fetches ${SCHEDULE_URL} by default, reusing a 24-hour local cache.`,
+    `Fetches ${SCHEDULE_URL} by default, reusing a 24-hour local cache, and saves the schedule to a dated text file.`,
     "--input FILE   Parse a saved HTML page instead of fetching the live schedule.",
-    "--output FILE  Write the text to a file instead of standard output.",
+    "--output FILE  Save the text to a specific file (default: EVENT_YEAR_RETRIEVALDATE.txt).",
+    "--stdout       Print the text to standard output instead of saving it.",
     "--refresh      Fetch the schedule again and replace the cached copy.",
     "--no-cache     Fetch the schedule without reading or writing the cache.",
     `--cache-file   Use a different cache file (default: ${DEFAULT_CACHE_PATH}).`,
@@ -381,13 +416,15 @@ async function main() {
         noCache: options.noCache,
       });
   const output = `${parseSchedule(html)}\n`;
-  if (options.output) {
-    const outputPath = path.resolve(options.output);
+  if (options.stdout) {
+    process.stdout.write(output);
+  } else {
+    const outputPath = options.output
+      ? path.resolve(options.output)
+      : getDefaultOutputPath(html);
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, output, "utf8");
     console.log(`Saved schedule to ${outputPath}`);
-  } else {
-    process.stdout.write(output);
   }
 }
 
@@ -398,4 +435,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { getScheduleHtml, parseSchedule };
+module.exports = { getDefaultOutputPath, getScheduleHtml, parseSchedule };
