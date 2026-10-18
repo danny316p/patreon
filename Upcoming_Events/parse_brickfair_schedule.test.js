@@ -1,8 +1,11 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const os = require("node:os");
+const path = require("node:path");
 const test = require("node:test");
-const { parseSchedule } = require("./parse_brickfair_schedule.js");
+const { getScheduleHtml, parseSchedule } = require("./parse_brickfair_schedule.js");
 
 const fixture = `
   <p class="pWeekday">Thursday</p>
@@ -48,4 +51,66 @@ test("groups simultaneous events and includes schedule details", () => {
 
 test("fails clearly when the page contains no schedule", () => {
   assert.throws(() => parseSchedule("<html><body>No schedule</body></html>"), /No schedule days/);
+});
+
+test("reuses cached HTML until refreshed or expired", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "brickfair-parser-test-"));
+  const cachePath = path.join(directory, "schedule.json");
+  const fetchedPages = [
+    "first page",
+    "refreshed page",
+    "uncached page",
+    "expired page",
+  ];
+  let fetchCount = 0;
+  const fetcher = async () => ({
+    ok: true,
+    text: async () => fetchedPages[fetchCount++],
+  });
+  const now = 1_800_000_000_000;
+
+  try {
+    assert.equal(await getScheduleHtml("https://example.com", { cachePath, fetcher, now }), "first page");
+    assert.equal(await getScheduleHtml("https://example.com", { cachePath, fetcher, now }), "first page");
+    assert.equal(fetchCount, 1);
+
+    assert.equal(
+      await getScheduleHtml("https://example.com", {
+        cachePath,
+        fetcher,
+        now,
+        refresh: true,
+      }),
+      "refreshed page",
+    );
+    assert.equal(fetchCount, 2);
+
+    assert.equal(
+      await getScheduleHtml("https://example.com", {
+        cachePath,
+        fetcher,
+        now,
+        noCache: true,
+      }),
+      "uncached page",
+    );
+    assert.equal(fetchCount, 3);
+    assert.equal(
+      await getScheduleHtml("https://example.com", { cachePath, fetcher, now }),
+      "refreshed page",
+    );
+    assert.equal(fetchCount, 3);
+
+    assert.equal(
+      await getScheduleHtml("https://example.com", {
+        cachePath,
+        fetcher,
+        now: now + 24 * 60 * 60 * 1000,
+      }),
+      "expired page",
+    );
+    assert.equal(fetchCount, 4);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
 });
