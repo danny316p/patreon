@@ -166,8 +166,12 @@ function findEvents(dayHtml, weekday) {
     const block = extractDiv(dayHtml, opening.index);
     divTags.lastIndex = block.end;
 
+    const shortName = getClassText(block.html, "gmName");
+    const subtitle = getFirstTagText(block.html, "small");
     const title =
-      getClassText(block.html, "gmName") || getFirstTagText(block.html, "small");
+      shortName === "Brickee" && subtitle === "Votes Due"
+        ? `${shortName} ${subtitle}`
+        : shortName || subtitle;
     const hourText = getInputValue(block.html, "Hour");
     const minuteText = getInputValue(block.html, "Minute");
     if (!title || hourText === null || minuteText === null) {
