@@ -8,13 +8,16 @@ Usage:
 Creator details and the default archive filename template are loaded from the
 adjacent patreon_config.json file. Start by copying
 quips/patreon_config.example.json to quips/patreon_config.json, then replace
-the example values.
+the example values. Featured images are downloaded beside the archive in an
+archive-specific images directory.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import mimetypes
+import os
 import re
 import sys
 from datetime import datetime
@@ -89,7 +92,7 @@ def initial_feed_params(config: dict[str, str]) -> dict[str, str]:
         "fields[launcher-feed-section]": "footer",
         "fields[launcher-feed-item]": "",
         "fields[feed-card-quick-post]": "",
-        "fields[post]": "content_json_string,published_at,url,post_type,title",
+        "fields[post]": "content_json_string,published_at,url,post_type,title,image",
         "include": "items,items.card_quick_post,items.card_quick_post.post",
         "json-api-version": "1.0",
         "json-api-use-default-includes": "false",
@@ -102,7 +105,7 @@ def page_feed_params(config: dict[str, str]) -> dict[str, str]:
         "filter[campaign_id]": config["campaign_id"],
         "fields[launcher-feed-item]": "",
         "fields[feed-card-quick-post]": "",
-        "fields[post]": "content_json_string,published_at,url,post_type,title",
+        "fields[post]": "content_json_string,published_at,url,post_type,title,image",
         "include": "card_quick_post,card_quick_post.post",
         "page[size]": str(PAGE_SIZE),
         "json-api-version": "1.0",
@@ -268,7 +271,55 @@ def render_post_body(post: dict) -> str:
     return "\n\n".join(blocks)
 
 
-def format_post(post: dict, config: dict[str, str]) -> str:
+def save_featured_image(
+    post: dict, output_path: Path, config: dict[str, str]
+) -> str | None:
+    image = post.get("attributes", {}).get("image")
+    if not isinstance(image, dict):
+        return None
+    image_url = image.get("large_url") or image.get("url") or image.get("thumb_url")
+    if not isinstance(image_url, str) or not image_url:
+        return None
+
+    request = Request(
+        image_url,
+        headers={
+            "Referer": config["profile_url"],
+            "User-Agent": config["user_agent"],
+        },
+    )
+    try:
+        with urlopen(request, timeout=30) as response:
+            image_data = response.read()
+            content_type = response.headers.get_content_type()
+    except (HTTPError, URLError, TimeoutError) as exc:
+        raise RuntimeError(
+            f"Could not download featured image for Patreon post {post.get('id')}: "
+            f"{exc}"
+        ) from exc
+
+    if not content_type.startswith("image/"):
+        raise RuntimeError(
+            f"Patreon returned non-image content for featured image on post "
+            f"{post.get('id')}: {content_type}"
+        )
+    extension = mimetypes.guess_extension(content_type) or ".img"
+    if extension == ".jpe":
+        extension = ".jpg"
+    post_id = re.sub(r"[^A-Za-z0-9_-]", "_", str(post.get("id", "")))
+    if not post_id:
+        raise RuntimeError("Cannot save featured image for a post without an ID.")
+
+    image_directory = output_path.parent / f"{output_path.stem}_images"
+    image_directory.mkdir(parents=True, exist_ok=True)
+    image_path = image_directory / f"{post_id}{extension}"
+    image_path.write_bytes(image_data)
+    return Path(os.path.relpath(image_path, start=output_path.parent)).as_posix()
+
+
+def format_post(
+    post: dict, config: dict[str, str], output_path: Path
+) -> str:
     attributes = post.get("attributes", {})
     published_at = attributes.get("published_at")
     if published_at:
@@ -288,7 +339,11 @@ def format_post(post: dict, config: dict[str, str]) -> str:
         f"{config['platform_url'].rstrip('/')}/{config['creator_slug']}/posts/{post_id}"
     )
     body = render_post_body(post)
-    return f"## {date}\n\n[Patreon quip]({url})\n\n{body}"
+    featured_image_path = save_featured_image(post, output_path, config)
+    image_markdown = (
+        f"\n\n![Featured image]({featured_image_path})" if featured_image_path else ""
+    )
+    return f"## {date}\n\n[Patreon quip]({url}){image_markdown}\n\n{body}"
 
 
 def collect_new_posts(
@@ -379,7 +434,9 @@ def scrape(output_path: Path, config: dict[str, str]) -> int:
             print("No new quips found; the newest feed entry is already in the archive.")
         return 0
 
-    entries = "\n\n".join(format_post(post, config) for post in new_posts)
+    entries = "\n\n".join(
+        format_post(post, config, output_path) for post in new_posts
+    )
     collected_date = datetime.now().strftime("%B %d, %Y").replace(" 0", " ")
     if not markdown:
         updated = (
