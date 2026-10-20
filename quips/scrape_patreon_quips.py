@@ -3,17 +3,21 @@
 
 Usage:
     python3 quips/scrape_patreon_quips.py
-    python3 quips/scrape_patreon_quips.py --output quips/Patreon_Quips_2026.md
+    python3 quips/scrape_patreon_quips.py --output path/to/archive.md
 
-Creator-specific identifiers and profile details are loaded from the adjacent
-patreon_config.json file. Start by copying quips/patreon_config.example.json to
-quips/patreon_config.json, then replace the example creator details.
+Creator details and the default archive filename template are loaded from the
+adjacent patreon_config.json file. Start by copying
+quips/patreon_config.example.json to quips/patreon_config.json, then replace
+the example values. Featured images are downloaded beside the archive in an
+archive-specific images directory.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import mimetypes
+import os
 import re
 import sys
 from datetime import datetime
@@ -43,7 +47,7 @@ def load_config() -> dict[str, str]:
         raise RuntimeError(f"Creator config {CONFIG_PATH} is not valid JSON.") from exc
 
     if not isinstance(config, dict):
-        raise RuntimeError(f"Creator config {CONFIG_PATH} must contain a JSON object.")
+        raise RuntimeError(f"Scraper config {CONFIG_PATH} must contain a JSON object.")
     required = (
         "campaign_id",
         "creator_name",
@@ -51,6 +55,7 @@ def load_config() -> dict[str, str]:
         "platform_url",
         "profile_url",
         "user_agent",
+        "archive_filename_template",
     )
     missing = [
         key
@@ -59,8 +64,24 @@ def load_config() -> dict[str, str]:
     ]
     if missing:
         raise RuntimeError(
-            f"Creator config {CONFIG_PATH} must define non-empty string values for: "
+            f"Scraper config {CONFIG_PATH} must define non-empty string values for: "
             + ", ".join(missing)
+        )
+    archive_template = config["archive_filename_template"]
+    try:
+        archive_name = archive_template.format(year=datetime.now().year)
+    except (IndexError, KeyError, ValueError) as exc:
+        raise RuntimeError(
+            "archive_filename_template must be a valid format string using {year}."
+        ) from exc
+    if (
+        "{year}" not in archive_template
+        or Path(archive_name).name != archive_name
+        or "\\" in archive_name
+    ):
+        raise RuntimeError(
+            "archive_filename_template must be a filename containing the {year} "
+            "placeholder."
         )
     return config
 
@@ -71,7 +92,7 @@ def initial_feed_params(config: dict[str, str]) -> dict[str, str]:
         "fields[launcher-feed-section]": "footer",
         "fields[launcher-feed-item]": "",
         "fields[feed-card-quick-post]": "",
-        "fields[post]": "content_json_string,published_at,url,post_type,title",
+        "fields[post]": "content_json_string,published_at,url,post_type,title,image",
         "include": "items,items.card_quick_post,items.card_quick_post.post",
         "json-api-version": "1.0",
         "json-api-use-default-includes": "false",
@@ -84,7 +105,7 @@ def page_feed_params(config: dict[str, str]) -> dict[str, str]:
         "filter[campaign_id]": config["campaign_id"],
         "fields[launcher-feed-item]": "",
         "fields[feed-card-quick-post]": "",
-        "fields[post]": "content_json_string,published_at,url,post_type,title",
+        "fields[post]": "content_json_string,published_at,url,post_type,title,image",
         "include": "card_quick_post,card_quick_post.post",
         "page[size]": str(PAGE_SIZE),
         "json-api-version": "1.0",
@@ -250,7 +271,55 @@ def render_post_body(post: dict) -> str:
     return "\n\n".join(blocks)
 
 
-def format_post(post: dict, config: dict[str, str]) -> str:
+def save_featured_image(
+    post: dict, output_path: Path, config: dict[str, str]
+) -> str | None:
+    image = post.get("attributes", {}).get("image")
+    if not isinstance(image, dict):
+        return None
+    image_url = image.get("large_url") or image.get("url") or image.get("thumb_url")
+    if not isinstance(image_url, str) or not image_url:
+        return None
+
+    request = Request(
+        image_url,
+        headers={
+            "Referer": config["profile_url"],
+            "User-Agent": config["user_agent"],
+        },
+    )
+    try:
+        with urlopen(request, timeout=30) as response:
+            image_data = response.read()
+            content_type = response.headers.get_content_type()
+    except (HTTPError, URLError, TimeoutError) as exc:
+        raise RuntimeError(
+            f"Could not download featured image for Patreon post {post.get('id')}: "
+            f"{exc}"
+        ) from exc
+
+    if not content_type.startswith("image/"):
+        raise RuntimeError(
+            f"Patreon returned non-image content for featured image on post "
+            f"{post.get('id')}: {content_type}"
+        )
+    extension = mimetypes.guess_extension(content_type) or ".img"
+    if extension == ".jpe":
+        extension = ".jpg"
+    post_id = re.sub(r"[^A-Za-z0-9_-]", "_", str(post.get("id", "")))
+    if not post_id:
+        raise RuntimeError("Cannot save featured image for a post without an ID.")
+
+    image_directory = output_path.parent / f"{output_path.stem}_images"
+    image_directory.mkdir(parents=True, exist_ok=True)
+    image_path = image_directory / f"{post_id}{extension}"
+    image_path.write_bytes(image_data)
+    return Path(os.path.relpath(image_path, start=output_path.parent)).as_posix()
+
+
+def format_post(
+    post: dict, config: dict[str, str], output_path: Path
+) -> str:
     attributes = post.get("attributes", {})
     published_at = attributes.get("published_at")
     if published_at:
@@ -270,7 +339,11 @@ def format_post(post: dict, config: dict[str, str]) -> str:
         f"{config['platform_url'].rstrip('/')}/{config['creator_slug']}/posts/{post_id}"
     )
     body = render_post_body(post)
-    return f"## {date}\n\n[Patreon quip]({url})\n\n{body}"
+    featured_image_path = save_featured_image(post, output_path, config)
+    image_markdown = (
+        f"\n\n![Featured image]({featured_image_path})" if featured_image_path else ""
+    )
+    return f"## {date}\n\n[Patreon quip]({url}){image_markdown}\n\n{body}"
 
 
 def collect_new_posts(
@@ -307,7 +380,15 @@ def scrape(output_path: Path, config: dict[str, str]) -> int:
         markdown = output_path.read_text(encoding="utf-8")
     else:
         markdown = ""
-    known_ids = saved_post_ids(markdown, config)
+    archive_pattern = config["archive_filename_template"].replace("{year}", "*")
+    archive_paths = set(CONFIG_PATH.parent.glob(archive_pattern))
+    archive_paths.add(output_path)
+    known_ids = set()
+    for archive_path in archive_paths:
+        if archive_path.is_file():
+            known_ids.update(
+                saved_post_ids(archive_path.read_text(encoding="utf-8"), config)
+            )
 
     payload = fetch_json("", initial_feed_params(config), config)
     sections = payload.get("data", [])
@@ -353,7 +434,9 @@ def scrape(output_path: Path, config: dict[str, str]) -> int:
             print("No new quips found; the newest feed entry is already in the archive.")
         return 0
 
-    entries = "\n\n".join(format_post(post, config) for post in new_posts)
+    entries = "\n\n".join(
+        format_post(post, config, output_path) for post in new_posts
+    )
     collected_date = datetime.now().strftime("%B %d, %Y").replace(" 0", " ")
     if not markdown:
         updated = (
@@ -386,19 +469,24 @@ def archive_header(config: dict[str, str]) -> str:
     )
 
 
+def default_output_path(config: dict[str, str], year: int | None = None) -> Path:
+    archive_year = datetime.now().year if year is None else year
+    archive_name = config["archive_filename_template"].format(year=archive_year)
+    return CONFIG_PATH.with_name(archive_name)
+
+
 def main() -> int:
-    default_output = Path(__file__).with_name("Patreon_Quips_2026.md")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--output",
         type=Path,
-        default=default_output,
-        help=f"Markdown archive to update (default: {default_output})",
+        help="Markdown archive to update (overrides the configured default).",
     )
     args = parser.parse_args()
     try:
         config = load_config()
-        scrape(args.output, config)
+        output_path = args.output or default_output_path(config)
+        scrape(output_path, config)
         return 0
     except (OSError, RuntimeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)

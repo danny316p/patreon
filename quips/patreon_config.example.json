@@ -4,5 +4,6 @@
   "creator_slug": "YourCreatorSlug",
   "platform_url": "https://www.patreon.com",
   "profile_url": "https://www.patreon.com/cw/YourCreatorSlug/quips",
-  "user_agent": "Mozilla/5.0 (compatible; PatreonQuipArchive/1.0)"
+  "user_agent": "Mozilla/5.0 (compatible; PatreonQuipArchive/1.0)",
+  "archive_filename_template": "Patreon_Quips_{year}.md"
 }
