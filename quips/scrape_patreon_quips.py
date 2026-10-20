@@ -3,11 +3,12 @@
 
 Usage:
     python3 quips/scrape_patreon_quips.py
-    python3 quips/scrape_patreon_quips.py --output quips/Patreon_Quips_2026.md
+    python3 quips/scrape_patreon_quips.py --output path/to/archive.md
 
-Creator-specific identifiers and profile details are loaded from the adjacent
-patreon_config.json file. Start by copying quips/patreon_config.example.json to
-quips/patreon_config.json, then replace the example creator details.
+Creator details and the default archive filename template are loaded from the
+adjacent patreon_config.json file. Start by copying
+quips/patreon_config.example.json to quips/patreon_config.json, then replace
+the example values.
 """
 
 from __future__ import annotations
@@ -51,6 +52,7 @@ def load_config() -> dict[str, str]:
         "platform_url",
         "profile_url",
         "user_agent",
+        "archive_filename_template",
     )
     missing = [
         key
@@ -59,8 +61,24 @@ def load_config() -> dict[str, str]:
     ]
     if missing:
         raise RuntimeError(
-            f"Creator config {CONFIG_PATH} must define non-empty string values for: "
+            f"Scraper config {CONFIG_PATH} must define non-empty string values for: "
             + ", ".join(missing)
+        )
+    archive_template = config["archive_filename_template"]
+    try:
+        archive_name = archive_template.format(year=datetime.now().year)
+    except (IndexError, KeyError, ValueError) as exc:
+        raise RuntimeError(
+            "archive_filename_template must be a valid format string using {year}."
+        ) from exc
+    if (
+        "{year}" not in archive_template
+        or Path(archive_name).name != archive_name
+        or "\\" in archive_name
+    ):
+        raise RuntimeError(
+            "archive_filename_template must be a filename containing the {year} "
+            "placeholder."
         )
     return config
 
@@ -307,7 +325,15 @@ def scrape(output_path: Path, config: dict[str, str]) -> int:
         markdown = output_path.read_text(encoding="utf-8")
     else:
         markdown = ""
-    known_ids = saved_post_ids(markdown, config)
+    archive_pattern = config["archive_filename_template"].replace("{year}", "*")
+    archive_paths = set(CONFIG_PATH.parent.glob(archive_pattern))
+    archive_paths.add(output_path)
+    known_ids = set()
+    for archive_path in archive_paths:
+        if archive_path.is_file():
+            known_ids.update(
+                saved_post_ids(archive_path.read_text(encoding="utf-8"), config)
+            )
 
     payload = fetch_json("", initial_feed_params(config), config)
     sections = payload.get("data", [])
@@ -386,19 +412,24 @@ def archive_header(config: dict[str, str]) -> str:
     )
 
 
+def default_output_path(config: dict[str, str], year: int | None = None) -> Path:
+    archive_year = datetime.now().year if year is None else year
+    archive_name = config["archive_filename_template"].format(year=archive_year)
+    return CONFIG_PATH.with_name(archive_name)
+
+
 def main() -> int:
-    default_output = Path(__file__).with_name("Patreon_Quips_2026.md")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--output",
         type=Path,
-        default=default_output,
-        help=f"Markdown archive to update (default: {default_output})",
+        help="Markdown archive to update (overrides the configured default).",
     )
     args = parser.parse_args()
     try:
         config = load_config()
-        scrape(args.output, config)
+        output_path = args.output or default_output_path(config)
+        scrape(output_path, config)
         return 0
     except (OSError, RuntimeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
