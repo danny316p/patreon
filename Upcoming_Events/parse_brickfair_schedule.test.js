@@ -94,7 +94,7 @@ test("groups events and puts public and exhibitor hour markers in each day's tim
       "Saturday, November 7, 2026",
       "8:30 AM: Hall opens",
       "10:00 AM: Public hours start",
-      "4:00 PM: Public hours end and teardown starts",
+      "4:00 PM: Public hours end",
       "9:00 PM: Adult Swim 21+ years old only starts",
       "11:00 PM: Hall closes",
       "2:00 AM: Adult Swim 21+ years old only ends",

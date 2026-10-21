@@ -259,6 +259,7 @@ function getDayName(value) {
 
 function findOperatingEvents(html) {
   const eventsByDay = new Map();
+  let lastPublicHoursEnd;
   const paragraphs = /<p\b([^>]*)>([\s\S]*?)<\/p>/gi;
   let paragraph;
   while ((paragraph = paragraphs.exec(html)) !== null) {
@@ -319,16 +320,18 @@ function findOperatingEvents(html) {
       });
       const endMinute = end.hour * 60 + end.minute;
       const startMinute = start.hour * 60 + start.minute;
-      events.push({
+      const endEvent = {
         ...end,
         sortMinute: endMinute <= startMinute ? endMinute + 1440 : endMinute,
-        title:
-          heading === "Public Hours"
-            ? "Public hours end and teardown starts"
-            : "Hall closes",
-      });
+        title: heading === "Public Hours" ? "Public hours end" : "Hall closes",
+      };
+      events.push(endEvent);
+      if (heading === "Public Hours") lastPublicHoursEnd = endEvent;
       eventsByDay.set(day.toLowerCase(), events);
     }
+  }
+  if (lastPublicHoursEnd) {
+    lastPublicHoursEnd.title += " and teardown starts";
   }
   return eventsByDay;
 }
