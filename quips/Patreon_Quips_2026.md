@@ -1,10 +1,25 @@
 # Patreon Quips
 
-Public quips from [Dan Pikora's Patreon Quips page](https://www.patreon.com/cw/DanPikora/quips), collected October 13, 2026. Entries are listed newest first; Patreon displayed the newest entry as “Yesterday” when collected.
+Public quips from [Dan Pikora's Patreon Quips page](https://www.patreon.com/cw/DanPikora/quips), collected October 20, 2026. Entries are listed newest first; Patreon displayed the newest entry as “Yesterday” when collected.
+
+## October 19, 2026
+
+[Patreon quip](https://www.patreon.com/DanPikora/posts/172821218)
+
+Do you have a YouTube channel with a video of one of your original MOCs on it? Let me know!
+
+A little while back, I started a YouTube Playlist: https://www.youtube.com/playlist?list=PLfMtNEjePOdU titled "Real AFOLs Real MOCs" - the goal being to highlight people who build. There are plenty of people who provide commentary, review sets, visit events, etc, but they're not the artists we want to celebrate. Even the word "artist" is probably making the bar sound too high - you qualify as a real AFOL with with a real MOC as soon as you've shared something original you've made out of LEGO elements.  
+  
+My self-imposed rules for this YouTube playlist:  
+- one MOC per builder to highlight accounts we should follow (implied here: it should be your video of your MOC)
+
+- building/models only
 
 ## October 13, 2026
 
 [Patreon quip](https://www.patreon.com/DanPikora/posts/172206905)
+
+![Featured image](Patreon_Quips_2026_images/172206905.png)
 
 While I was at Brickomanie this year, I encountered Knifex Skelenby ( https://skelenby.neocities.org/ ) as they painted my Laser Tag building! I've since built a small frame for the finished painting, which was left next to my model when it was complete. Besides the collage featured here, there are seven phone snapshots of the process (spanning their painting, the results, and my framing) newly public on Flickr: https://www.flickr.com/photos/dp3/albums/72177720335524563/
 
@@ -12,11 +27,15 @@ While I was at Brickomanie this year, I encountered Knifex Skelenby ( https://sk
 
 [Patreon quip](https://www.patreon.com/DanPikora/posts/172017846)
 
+![Featured image](Patreon_Quips_2026_images/172017846.png)
+
 Newly on Flickr (and completely public)! 5 phone snapshots (and this collage) showing my personal display at Brickomanie 2026:  https://www.flickr.com/photos/dp3/albums/72177720335521286/
 
 ## September 16, 2026
 
 [Patreon quip](https://www.patreon.com/DanPikora/posts/169750455)
+
+![Featured image](Patreon_Quips_2026_images/169750455.jpg)
 
 (copied from Flickr, where I do a Teddy Bear Tuesday feature weekly every Tuesday)  
   
@@ -77,11 +96,15 @@ Check out more on Flickr directly: https://www.flickr.com/photos/dp3/collections
 
 [Patreon quip](https://www.patreon.com/DanPikora/posts/167350832)
 
+![Featured image](Patreon_Quips_2026_images/167350832.jpg)
+
 A quick look at the BioniLUG display I've set up at Brickomanie 
 
 ## July 20, 2026
 
 [Patreon quip](https://www.patreon.com/DanPikora/posts/164296878)
+
+![Featured image](Patreon_Quips_2026_images/164296878.jpg)
 
 I built this hotel for ColonialLUG's Beach Town collaborative build in 2026. I made three other buildings for that beach/summer-themed LEGO town layout as well, but only this one has easily-removable floors, a folding middle section, and the beginnings of an interior.
 
@@ -92,6 +115,8 @@ See behind-the-scenes photos of my build process on Flickr (and even more photos
 ## July 13, 2026
 
 [Patreon quip](https://www.patreon.com/DanPikora/posts/bzpower-is-much-163647914)
+
+![Featured image](Patreon_Quips_2026_images/163647914.png)
 
 I've posted an unusual tidbit on BZPower just now: https://www.bzpower.com/blogs/entry/139267-bzpower-is-much-more-active-than-i-thought/ - the long and short of it is that I was surprised to find that my "form letter" announcing my Billund trip (and blasted out to many people and social platforms) actually got the best response as a BZPower blog entry.
 
@@ -170,6 +195,8 @@ https://www.flickr.com/photos/dp3/shares/70Q8J4sJa2
 
 [Patreon quip](https://www.patreon.com/DanPikora/posts/158314267)
 
+![Featured image](Patreon_Quips_2026_images/158314267.jpg)
+
 I've been sharing some quick snapshots of Billund over on Flickr! Things have been busy enough that I haven't had much time for sharing photos, but make sure to Follow me on Flickr so you will know when I do share things. Here's a quick share of all public photos so far: https://www.flickr.com/photos/dp3/shares/s3LA8C1xh8 (more goodies are waiting for future use).  
   
 There have also been a few requests (managed over email and the Discord server) for goodies to bring back to the Americas after the trip. Since I'm here a few more weeks, it's not too late to reach out!  
@@ -180,6 +207,8 @@ Additionally, if you're in Denmark and interested in meeting up, my schedule has
 
 [Patreon quip](https://www.patreon.com/DanPikora/posts/get-more-from-on-157501015)
 
+![Featured image](Patreon_Quips_2026_images/157501015.png)
+
 Some fresh news from Wall of History and Brickshelf: the official Patreon is now open! https://www.patreon.com/ChroniclersCompany is where you can support hosting and ongoing work on Majhost, Brickshelf, Chronicler, and Wall of History. I'll add this to my recommendations on Patreon shortly.  
   
 I have a busy day in Billund ahead of me and a few things backlogged already to post on Flickr and add in quips here. It's 8 AM here, so I've got a little over an hour to make myself presentable and get to LEGO House to start my day at BRICKACCINO.
@@ -187,6 +216,8 @@ I have a busy day in Billund ahead of me and a few things backlogged already to 
 ## May 4, 2026
 
 [Patreon quip](https://www.patreon.com/DanPikora/posts/157374421)
+
+![Featured image](Patreon_Quips_2026_images/157374421.jpg)
 
 Let's take a quick look at LEGO destinations at the Philadelphia International Airport! I count three of them:  
 - Philadelphia Airport LEGO Store (located in the connector between terminals B and C), with LEGO Store passport stamps  
