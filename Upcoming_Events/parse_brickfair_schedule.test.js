@@ -131,7 +131,9 @@ test("builds the default output filename from event, year, and retrieval date", 
 test("defaults to a dated file and prints only with --stdout", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "brickfair-parser-cli-"));
   const inputPath = path.join(directory, "schedule.html");
-  const html = fixture.replace("BrickFair LEGO Expo", "BrickFair Test CLI");
+  const html = fixture
+    .replace("BrickFair LEGO Expo", "BrickFair Test CLI")
+    .replace('<div id="hed2">Oaks</div>', '<div id="hed2">Test CLI</div>');
   const defaultOutputPath = getDefaultOutputPath(html);
   const scriptPath = path.join(__dirname, "parse_brickfair_schedule.js");
   await fs.writeFile(inputPath, html, "utf8");
