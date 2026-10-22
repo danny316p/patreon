@@ -15,3 +15,17 @@ Run the parser tests with:
 ```sh
 node --test Upcoming_Events/parse_brickfair_schedule.test.js
 ```
+
+To turn a generated schedule file into Sesh `/create` commands:
+
+```sh
+node Upcoming_Events/generate_sesh_commands.js --input Upcoming_Events/BrickFair_Oaks_2026_2026-10-17.txt
+```
+
+The command list is saved beside the input with `_sesh_commands.txt` appended to its filename. Use `--output FILE` to choose another path or `--stdout` to print the commands. Every timed entry is included, including hours markers, alerts, and simultaneous events. Overnight entries are assigned to the following calendar day. Locations and presenters are placed in Sesh's corresponding optional fields, and overlong event titles are shortened to Sesh's 64-character limit with the full text retained in the description.
+
+Run the command generator tests with:
+
+```sh
+node --test Upcoming_Events/generate_sesh_commands.test.js
+```
