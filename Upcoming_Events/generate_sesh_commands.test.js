@@ -23,13 +23,13 @@ test("generates Sesh commands for all timed entries and simultaneous events", ()
   assert.equal(
     generateSeshCommands(schedule),
     [
-      '/create title:"Hall opens" datetime:"November 7, 2026 8:30 AM"',
-      '/create title:"Public hours start" datetime:"November 7, 2026 10:00 AM"',
-      '/create title:"Public hours end" datetime:"November 7, 2026 5:00 PM"',
-      '/create title:"Adult Swim 21+ years old only starts" datetime:"November 7, 2026 9:00 PM"',
-      '/create title:"Build & Share" datetime:"November 7, 2026 9:00 PM" location:"Food Court" description:"Presenter: Alex Builder"',
-      '/create title:"Hall closes" datetime:"November 7, 2026 11:00 PM"',
-      '/create title:"Adult Swim 21+ years old only ends" datetime:"November 8, 2026 2:00 AM"',
+      '/create title:"Hall opens" datetime:"November 7, 2026 8:30 AM EST"',
+      '/create title:"Public hours start" datetime:"November 7, 2026 10:00 AM EST"',
+      '/create title:"Public hours end" datetime:"November 7, 2026 5:00 PM EST"',
+      '/create title:"Adult Swim 21+ years old only starts" datetime:"November 7, 2026 9:00 PM EST"',
+      '/create title:"Build & Share" datetime:"November 7, 2026 9:00 PM EST" location:"Food Court" description:"Presenter: Alex Builder"',
+      '/create title:"Hall closes" datetime:"November 7, 2026 11:00 PM EST"',
+      '/create title:"Adult Swim 21+ years old only ends" datetime:"November 8, 2026 2:00 AM EST"',
     ].join("\n"),
   );
 });
@@ -39,7 +39,7 @@ test("escapes quotes and backslashes in event titles", () => {
     generateSeshCommands(
       'Monday, November 9, 2026\n1:00 PM: Build "A" \\\\ Share',
     ),
-    '/create title:"Build \\"A\\" \\\\\\\\ Share" datetime:"November 9, 2026 1:00 PM"',
+    '/create title:"Build \\"A\\" \\\\\\\\ Share" datetime:"November 9, 2026 1:00 PM EST"',
   );
 });
 
@@ -47,7 +47,7 @@ test("keeps Sesh titles within 64 characters and preserves the full title", () =
   const title = "Check-In IS NOT POSSIBLE. Please check-in by Friday at the latest.";
   assert.equal(
     generateSeshCommands(`Saturday, November 7, 2026\n8:00 PM: ${title}`),
-    '/create title:"Check-In IS NOT POSSIBLE. Please check-in by Friday at the la..." datetime:"November 7, 2026 8:00 PM" description:"Full schedule entry: Check-In IS NOT POSSIBLE. Please check-in by Friday at the latest."',
+    '/create title:"Check-In IS NOT POSSIBLE. Please check-in by Friday at the la..." datetime:"November 7, 2026 8:00 PM EST" description:"Full schedule entry: Check-In IS NOT POSSIBLE. Please check-in by Friday at the latest."',
   );
 });
 
@@ -82,7 +82,7 @@ test("writes a command file beside the input schedule", async () => {
     assert.equal(result.status, 0, result.stderr);
     assert.equal(
       await fs.readFile(outputPath, "utf8"),
-      '/create title:"Hall opens" datetime:"November 7, 2026 8:30 AM"\n',
+      '/create title:"Hall opens" datetime:"November 7, 2026 8:30 AM EST"\n',
     );
   } finally {
     await fs.rm(directory, { recursive: true, force: true });

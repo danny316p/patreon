@@ -83,7 +83,7 @@ function formatCommand(eventText, time, date) {
   }
 
   if (!title) throw new Error(`An event has no title: ${eventText}`);
-  const dateTime = `${formatDate(date)} ${time}`;
+  const dateTime = `${formatDate(date)} ${time} EST`;
   const parameters = [
     `title:${quote(title)}`,
     `datetime:${quote(dateTime)}`,
