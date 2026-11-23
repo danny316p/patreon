@@ -1,6 +1,27 @@
 # Patreon Quips
 
-Public quips from [Dan Pikora's Patreon Quips page](https://www.patreon.com/cw/DanPikora/quips), collected October 20, 2026. Entries are listed newest first; Patreon displayed the newest entry as “Yesterday” when collected.
+Public quips from [Dan Pikora's Patreon Quips page](https://www.patreon.com/cw/DanPikora/quips), collected November 22, 2026. Entries are listed newest first; Patreon displayed the newest entry as “Yesterday” when collected.
+
+## November 20, 2026
+
+[Patreon quip](https://www.patreon.com/DanPikora/posts/maker-faire-175888660)
+
+![Featured image](Patreon_Quips_2026_images/175888660.png)
+
+I'm fully setup now for *this* weekend's display at Maker Faire Rochester ( https://rochester.makerfaire.com/ ) - we have a semi-public day on Friday where local school groups can get in before the general public on Saturday.  
+  
+The kids aren't here yet, but I grabbed a few photos of our (ROCLUG's) display to promote on socials:  
+https://www.flickr.com/photos/dp3/shares/5B0Y3358L0  
+  
+I also grabbed a snapshot of the poster: http://flic.kr/p/2sNMcEV
+
+## October 21, 2026
+
+[Patreon quip](https://www.patreon.com/DanPikora/posts/duplo-ball-run-172997946)
+
+![Featured image](Patreon_Quips_2026_images/172997946.jpg)
+
+Old videos, new playlist - now that only 8 of the 15 videos on my YouTube channel (barely half!) are of the DUPLO Ball Run, I've created a new playlist that shows only DUPLO Ball Run videos: https://www.youtube.com/watch?v=fNMI-78BJvA&list=PLG7ECyvthlgs
 
 ## October 19, 2026
 
