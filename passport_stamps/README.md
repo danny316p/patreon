@@ -7,7 +7,7 @@ recognized text. OCR runs locally; page images are not uploaded.
 Install the Python dependencies and the Tesseract OCR executable:
 
 ```sh
-python -m pip install -r passport_stamps/requirements.txt
+python3 -m pip install -r passport_stamps/requirements.txt
 ```
 
 Install Tesseract separately for your operating system. On Windows, if it is
@@ -18,8 +18,8 @@ additional Tesseract language data is installed.
 Process one image or all supported images in a directory:
 
 ```sh
-python passport_stamps/extract_stamps.py "C:\scans\passport-page.jpg"
-python passport_stamps/extract_stamps.py "C:\scans\passport-pages" --output "C:\scans\stamps"
+python3 passport_stamps/extract_stamps.py "C:\scans\passport-page.jpg"
+python3 passport_stamps/extract_stamps.py "C:\scans\passport-pages" --output "C:\scans\stamps"
 ```
 
 The default output directory is `passport_stamps` beside the input image or
@@ -31,7 +31,7 @@ select rectangles yourself when the automatic boundaries are not suitable.
 Example with manual selection and an explicit Tesseract path:
 
 ```sh
-python passport_stamps/extract_stamps.py "C:\scans\passport-page.jpg" --manual --tesseract-cmd "C:\Program Files\Tesseract-OCR\tesseract.exe"
+python3 passport_stamps/extract_stamps.py "C:\scans\passport-page.jpg" --manual --tesseract-cmd "C:\Program Files\Tesseract-OCR\tesseract.exe"
 ```
 
 If OCR finds no readable text, the saved filename contains the page name and

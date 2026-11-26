@@ -19,7 +19,7 @@ except ImportError as exc:
     missing = exc.name or "a required package"
     raise SystemExit(
         f"Missing {missing}. Install the Python requirements with: "
-        "python -m pip install -r passport_stamps/requirements.txt"
+        "python3 -m pip install -r passport_stamps/requirements.txt"
     ) from exc
 
 
