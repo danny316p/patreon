@@ -23,10 +23,28 @@ python3 passport_stamps/extract_stamps.py "C:\scans\passport-pages" --output "C:
 ```
 
 The default output directory is `passport_stamps` beside the input image or
-inside the input directory. Crop margins default to 4%; change this with
-`--padding 0.06`. Automatic detection targets colored ink, so it may miss
-black-only stamps or include unrelated colored page details. Use `--manual` to
-select rectangles yourself when the automatic boundaries are not suitable.
+inside the input directory. Automatic detection uses adaptive color thresholds
+and groups nearby ink marks; the saved JPG has a white background outside the
+detected stamp silhouette. Crop margins default to 4%; change this with
+`--padding 0.06`. Colored-ink detection can still miss black-only stamps or
+include unrelated colored page details. Use `--manual` to select regions
+yourself when automatic detection misses a stamp or its boundaries.
+
+Rotate every stamp clockwise by the same angle:
+
+```sh
+python3 passport_stamps/extract_stamps.py "C:\scans\passport-page.jpg" --rotation 90
+```
+
+For pages where stamps need different orientations, use `--rotate-each` to
+enter a clockwise angle for each detected or manually selected stamp:
+
+```sh
+python3 passport_stamps/extract_stamps.py "C:\scans\passport-page.jpg" --rotate-each
+```
+
+Angles can be any number of degrees. Rotation expands the output canvas so the
+stamp is not clipped, and OCR runs on the rotated crop.
 
 Example with manual selection and an explicit Tesseract path:
 
